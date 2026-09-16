@@ -18,7 +18,7 @@ export default function Home() {
       <div className="flex flex-wrap justify-center gap-6 md:gap-8 w-full">
         
         {/* Guided Breathing */}
-        <Link href="/session" className="group focus:outline-none" aria-label="Guided Breathing — free breathing exercises">
+        <Link href="/guided" className="group focus:outline-none" aria-label="Guided Breathing — free breathing exercises">
           <div className="w-44 h-44 sm:w-52 sm:h-52 rounded-full bg-blue-600 text-white flex flex-col items-center justify-center shadow-md transition-transform duration-200 group-hover:scale-105 group-focus-visible:ring-4 group-focus-visible:ring-slate-900">
             <Wind className="w-10 h-10 sm:w-12 sm:h-12 mb-2" strokeWidth={2} />
             <span className="font-semibold text-base sm:text-lg px-2 text-center">Guided Breathing</span>

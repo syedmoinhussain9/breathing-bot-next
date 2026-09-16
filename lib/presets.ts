@@ -56,3 +56,17 @@ export const BREATHING_PRESETS: Record<string, PresetData> = {
     description: 'A classical yogic technique alternating breath between nostrils to balance both hemispheres of the nervous system and sharpen focus.'
   }
 };
+
+// Explicit ordering to prevent JavaScript from auto-sorting number keys to the top
+export const PRESET_ORDER = [
+  'box',
+  '478',
+  'coherent',
+  'physio_sigh',
+  'tactical',
+  'belly',
+  '142',
+  'pursed_lip',
+  'cardiac_ext',
+  'alternate_nostril'
+];

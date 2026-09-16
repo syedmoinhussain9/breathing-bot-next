@@ -38,7 +38,7 @@ export default function Navbar() {
                 Breathing ▾
               </button>
               <div className="absolute top-full left-0 hidden group-hover:flex flex-col bg-white dark:bg-slate-800 rounded-md shadow-lg py-2 w-56 z-50 border border-slate-200 dark:border-slate-700">
-                <Link href="/session" className="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"><Wind className="w-4 h-4"/> Guided Breathing</Link>
+                <Link href="/guided" className="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"><Wind className="w-4 h-4"/> Guided Breathing</Link>
                 <Link href="/panicroom" className="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"><HeartPulse className="w-4 h-4"/> Coherent Breathing</Link>
                 <Link href="/meditate" className="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm"><Waves className="w-4 h-4"/> Meditation Room</Link>
               </div>
@@ -105,7 +105,7 @@ export default function Navbar() {
             )}
 
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-2">Breathing</span>
-            <Link href="/session" className="pl-4 py-2 text-sm hover:text-blue-500 dark:hover:text-blue-400">Guided Breathing</Link>
+            <Link href="/guided" className="pl-4 py-2 text-sm hover:text-blue-500 dark:hover:text-blue-400">Guided Breathing</Link>
             <Link href="/panicroom" className="pl-4 py-2 text-sm hover:text-blue-500 dark:hover:text-blue-400">Coherent Breathing</Link>
             
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-4">Learn</span>

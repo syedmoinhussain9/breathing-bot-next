@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { ChevronDown, Globe, Moon, Sun, Wind } from "lucide-react";
+import { ChevronDown, Volume2, Moon, Sun } from "lucide-react";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function Navbar() {
   const { theme, setTheme } = useTheme();
@@ -11,13 +12,13 @@ export default function Navbar() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [learnOpen, setLearnOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
-  const [currentLang, setCurrentLang] = useState("English");
+
+  const { currentLangName, setLanguage } = useLanguage();
 
   const toolsRef = useRef<HTMLDivElement>(null);
   const learnRef = useRef<HTMLDivElement>(null);
   const langRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     setMounted(true);
     function handleClickOutside(event: MouseEvent) {
@@ -50,8 +51,30 @@ export default function Navbar() {
 
   const languages = [
     { name: "English", code: "en" },
-    { name: "Hindi (हिन्दी)", code: "hi" },
-    { name: "Bengali (বাংলা)", code: "bn" },
+    { name: "Arabic", code: "ar" },
+    { name: "Assamese", code: "as" },
+    { name: "Bengali", code: "bn" },
+    { name: "Chinese", code: "zh-hans" },
+    { name: "French", code: "fr" },
+    { name: "German", code: "de" },
+    { name: "Gujarati", code: "gu" },
+    { name: "Hebrew", code: "he" },
+    { name: "Hindi", code: "hi" },
+    { name: "Indonesian", code: "id" },
+    { name: "Italian", code: "it" },
+    { name: "Japanese", code: "ja" },
+    { name: "Kannada", code: "kn" },
+    { name: "Korean", code: "ko" },
+    { name: "Malayalam", code: "ml" },
+    { name: "Marathi", code: "mr" },
+    { name: "Portuguese", code: "pt" },
+    { name: "Russian", code: "ru" },
+    { name: "Spanish", code: "es" },
+    { name: "Swedish", code: "sv" },
+    { name: "Tamil", code: "ta" },
+    { name: "Telugu", code: "te" },
+    { name: "Urdu", code: "ur" },
+    { name: "Vietnamese", code: "vi" },
   ];
 
   return (
@@ -59,7 +82,6 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
-          {/* Logo */}
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center gap-2 text-xl font-bold text-slate-900 dark:text-white">
               <span className="text-2xl">🍃</span>
@@ -67,10 +89,9 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Desktop Menu */}
           <div className="hidden md:flex items-center gap-6">
             
-            {/* Tools (Breathing) Dropdown */}
+            {/* Tools Dropdown */}
             <div className="relative" ref={toolsRef}>
               <button 
                 onClick={() => { setToolsOpen(!toolsOpen); setLearnOpen(false); setLangOpen(false); }}
@@ -129,29 +150,39 @@ export default function Navbar() {
               {mounted && theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
 
-            {/* Language Selector Dropdown */}
+            {/* Audio Voice Language Selector Dropdown */}
             <div className="relative" ref={langRef}>
               <button 
                 onClick={() => { setLangOpen(!langOpen); setToolsOpen(false); setLearnOpen(false); }}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-300 dark:border-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none"
+                title="Select spoken audio voiceover language"
               >
-                <Globe className="w-4 h-4" />
-                {currentLang}
-                <ChevronDown className={`w-4 h-4 transition-transform ${langOpen ? "rotate-180" : ""}`} />
+                <Volume2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="flex flex-col text-left leading-tight">
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">Voice Audio</span>
+                  <span>{currentLangName}</span>
+                </span>
+                <ChevronDown className={`w-4 h-4 transition-transform ml-1 ${langOpen ? "rotate-180" : ""}`} />
               </button>
               
               {langOpen && (
-                <div className="absolute top-full right-0 mt-2 w-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg py-2 overflow-hidden z-50">
+                <div className="absolute top-full right-0 mt-2 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg py-2 overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
+                  <div className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 mb-1">
+                    Select Audio Language
+                  </div>
                   {languages.map((lang) => (
                     <button
                       key={lang.code}
                       onClick={() => {
-                        setCurrentLang(lang.name.split(" ")[0]);
+                        setLanguage(lang.code, lang.name);
                         setLangOpen(false);
                       }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-between"
                     >
-                      {lang.name}
+                      <span>{lang.name}</span>
+                      {currentLangName === lang.name && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                      )}
                     </button>
                   ))}
                 </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { useLanguage } from "@/lib/LanguageContext"; // <--- Import hook
 
 type Phase = "Ready" | "Inhale" | "Exhale";
 
@@ -12,14 +13,15 @@ const PHASES = [
 ];
 
 export default function PanicRoom() {
+  const { currentLangCode } = useLanguage(); // <--- Pull active language code
+
   const [isRunning, setIsRunning] = useState(false);
   const [phase, setPhase] = useState<Phase>("Ready");
   const [timeLeft, setTimeLeft] = useState<number>(0);
 
-  // We use refs to track values inside the interval without causing unnecessary re-renders
   const endTimeRef = useRef<number>(0);
   const phaseIndexRef = useRef<number>(0);
-  const wakeLockRef = useRef<any>(null); // any used as WakeLock isn't fully typed in standard TS yet
+  const wakeLockRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -38,23 +40,21 @@ export default function PanicRoom() {
     if (wakeLockRef.current) {
       try {
         await wakeLockRef.current.release();
-      } catch (e) {
-        // already released
-      }
+      } catch (e) {}
       wakeLockRef.current = null;
     }
   };
 
-  // --- 2. Audio Logic ---
+  // --- 2. Dynamic Audio Logic ---
   const playCue = (key: Phase) => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
     
-    // Assumes your TTS files are stored in public/audio/tts/en/
     const fileName = key.toLowerCase();
-    audioRef.current = new Audio(`/audio/tts/en/${fileName}.mp3`);
+    // Uses the selected language folder dynamically!
+    audioRef.current = new Audio(`/audio/tts/${currentLangCode}/${fileName}.mp3`);
     audioRef.current.play().catch((e) => console.warn("Audio playback failed:", e));
   };
 
@@ -75,11 +75,9 @@ export default function PanicRoom() {
       const msLeft = endTimeRef.current - Date.now();
 
       if (msLeft <= 0) {
-        // Move to next phase
         phaseIndexRef.current = (phaseIndexRef.current + 1) % PHASES.length;
         startPhase(phaseIndexRef.current);
       } else {
-        // Update display every 250ms
         setTimeLeft(Math.ceil(msLeft / 1000));
       }
     }, 250);
@@ -95,7 +93,6 @@ export default function PanicRoom() {
     startPhase(0);
     runInterval();
 
-    // Media Session API mapping
     if ("mediaSession" in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: "Coherent Breathing",
@@ -119,7 +116,6 @@ export default function PanicRoom() {
     setTimeLeft(0);
   };
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -130,7 +126,6 @@ export default function PanicRoom() {
   return (
     <div className="flex flex-col items-center justify-center p-4 py-8 md:py-12 min-h-[80vh]">
       
-      {/* Top Back Navigation */}
       <div className="w-full max-w-sm mb-6">
         <Link
           href="/"
@@ -149,21 +144,18 @@ export default function PanicRoom() {
         </p>
       </header>
 
-      {/* Main Interactive Card */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-3xl w-full max-w-sm p-8 flex flex-col items-center justify-between min-h-[400px]">
         
         <div className="flex-1 flex items-center justify-center w-full my-8 relative">
-          {/* Static Background Ring for Reference */}
           <div className="absolute w-24 h-24 rounded-full border-4 border-slate-100 dark:border-slate-800" />
           
-          {/* Animated Breathing Ring */}
           <div
             className="rounded-full bg-blue-600 dark:bg-blue-500 transition-all ease-linear"
             style={{
               width: phase === "Inhale" ? "220px" : phase === "Exhale" ? "80px" : "100px",
               height: phase === "Inhale" ? "220px" : phase === "Exhale" ? "80px" : "100px",
               opacity: phase === "Inhale" ? 1 : phase === "Exhale" ? 0.5 : 0.85,
-              transitionDuration: isRunning ? "4000ms" : "800ms", // Instantly snaps back if stopped
+              transitionDuration: isRunning ? "4000ms" : "800ms",
             }}
           />
         </div>
@@ -178,7 +170,6 @@ export default function PanicRoom() {
         </div>
       </div>
 
-      {/* Action Buttons */}
       <div className="w-full max-w-sm mt-8">
         {!isRunning ? (
           <button

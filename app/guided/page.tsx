@@ -5,19 +5,20 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, Rocket, StopCircle } from "lucide-react";
 import { BREATHING_PRESETS, PRESET_ORDER } from "@/lib/presets";
+import { useLanguage } from "@/lib/LanguageContext"; // <--- Import hook
 
 type PhaseKey = "Inhale" | "Hold" | "Exhale" | "Rest";
 
 function GuidedBreathingContent() {
   const searchParams = useSearchParams();
   const urlTechnique = searchParams.get("technique");
+  const { currentLangCode } = useLanguage(); // <--- Pull active language code
 
   const [selectedTech, setSelectedTech] = useState<string>("box");
   const [activeLevel, setActiveLevel] = useState<number>(1);
   const [targetCycles, setTargetCycles] = useState<number>(10);
   const [customSettings, setCustomSettings] = useState<[number, number, number, number]>([4, 0, 4, 0]);
 
-  // Safely update dropdown from URL
   useEffect(() => {
     if (urlTechnique && PRESET_ORDER.includes(urlTechnique)) {
       setSelectedTech(urlTechnique);
@@ -36,20 +37,20 @@ function GuidedBreathingContent() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Crash-proof timing calculation
   const presetData = BREATHING_PRESETS[selectedTech];
   const activeTimings = selectedTech === "custom" 
     ? customSettings 
     : (presetData?.levels[activeLevel] || [4, 0, 4, 0]);
 
-  // --- Audio & Wake Lock ---
+  // --- Dynamic Audio & Wake Lock ---
   const playCue = (key: PhaseKey | "Ended") => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
     const fileName = key.toLowerCase();
-    audioRef.current = new Audio(`/audio/tts/en/${fileName}.mp3`);
+    // Dynamically routes to public/audio/tts/[langCode]/filename.mp3
+    audioRef.current = new Audio(`/audio/tts/${currentLangCode}/${fileName}.mp3`);
     audioRef.current.play().catch(() => {});
   };
 
@@ -68,7 +69,6 @@ function GuidedBreathingContent() {
     }
   };
 
-  // --- Engine Logic ---
   const startSession = (e: React.FormEvent) => {
     e.preventDefault();
     if (activeTimings[0] === 0 || activeTimings[2] === 0) {
@@ -161,7 +161,7 @@ function GuidedBreathingContent() {
               >
                 {PRESET_ORDER.map((key) => {
                   const data = BREATHING_PRESETS[key];
-                  if (!data) return null; // Crash-proof check
+                  if (!data) return null;
                   return (
                     <option key={key} value={key}>
                       {data.name}

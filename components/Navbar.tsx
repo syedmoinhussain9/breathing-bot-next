@@ -34,6 +34,7 @@ export default function Navbar() {
     { name: "Guided Breathing", path: "/guided" },
     { name: "Coherent Breathing (Panic Room)", path: "/panicroom" },
     { name: "Meditation Room", path: "/meditate" },
+    { name: "Sleep Sanctuary", path: "/sleep" }, 
   ];
 
   const learnLinks = [

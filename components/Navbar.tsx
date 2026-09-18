@@ -49,6 +49,8 @@ export default function Navbar() {
     { name: "Physiological Sigh", path: "/learn/physio-sigh" },
     { name: "Pursed-Lip Breathing", path: "/learn/pursed-lip-breathing" },
     { name: "Noise Guide", path: "/learn/noise-guide" },
+    { name: "Pomodoro Technique", path: "/learn/pomodoro-technique" },
+    { name: "Sleep Sanctuary", path: "/learn/sleep-sanctuary" },
   ];
 
   const languages = [

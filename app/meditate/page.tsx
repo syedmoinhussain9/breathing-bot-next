@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Play, Square, Circle } from "lucide-react";
+import { ArrowLeft, Play, Square, Circle, Waves, Volume2 } from "lucide-react";
 
 type SoundType = "brown" | "white" | "pink" | "warm_major" | "wistful_minor" | "deep_sleep";
 
@@ -19,11 +19,15 @@ export default function MeditationRoom() {
   const [totalSeconds, setTotalSeconds] = useState(300); // Default 5m
   const [timeLeft, setTimeLeft] = useState(300);
   const [customInput, setCustomInput] = useState("");
+  
+  // Real-time volume state
+  const [volume, setVolume] = useState(0.8);
 
   // Audio & Engine Refs
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const activeNodesRef = useRef<any[]>([]); // To track and stop all active audio nodes
+  const activeNodesRef = useRef<any[]>([]);
   const masterGainRef = useRef<GainNode | null>(null);
+  const finalUserGainRef = useRef<GainNode | null>(null);
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const endTimeRef = useRef<number>(0);
@@ -53,7 +57,9 @@ export default function MeditationRoom() {
         });
         activeNodesRef.current = [];
         masterGainRef.current?.disconnect();
+        finalUserGainRef.current?.disconnect();
         masterGainRef.current = null;
+        finalUserGainRef.current = null;
       }, 2100);
     }
   };
@@ -70,6 +76,7 @@ export default function MeditationRoom() {
     g.gain.setValueAtTime(0.1, ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
     
+    // Connect bell directly to speakers, bypassing user volume control
     osc.connect(g);
     g.connect(ctx.destination);
     osc.start();
@@ -81,22 +88,25 @@ export default function MeditationRoom() {
     const ctx = audioCtxRef.current;
     if (ctx.state === "suspended") ctx.resume();
 
-    stopAudio(); // Clear existing
+    stopAudio();
 
-    // 1. Calculate exact target volume BEFORE scheduling the fade
     const isNoise = ["brown", "white", "pink"].includes(soundType);
     const targetGain = isNoise 
       ? 0.3 
       : Math.pow(10, PAD_PRESETS[soundType].master_gain_db / 20.0);
 
-    // 2. Schedule a single, clean 3-second fade-in
+    // User volume controller (maps to the slider)
+    finalUserGainRef.current = ctx.createGain();
+    finalUserGainRef.current.gain.value = volume;
+    finalUserGainRef.current.connect(ctx.destination);
+
+    // Master mathematical gain (handles the 3s fade in/out)
     masterGainRef.current = ctx.createGain();
     masterGainRef.current.gain.setValueAtTime(0, ctx.currentTime);
     masterGainRef.current.gain.linearRampToValueAtTime(targetGain, ctx.currentTime + 3);
-    masterGainRef.current.connect(ctx.destination);
+    masterGainRef.current.connect(finalUserGainRef.current);
 
     if (isNoise) {
-      // Noise Generator
       const bufferSize = ctx.sampleRate * 3;
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const data = buffer.getChannelData(0);
@@ -125,7 +135,6 @@ export default function MeditationRoom() {
         }
       }
 
-      // Normalize
       let peak = 0;
       for (let i = 0; i < bufferSize; i++) peak = Math.max(peak, Math.abs(data[i]));
       for (let i = 0; i < bufferSize; i++) data[i] *= (0.1 / peak);
@@ -144,25 +153,19 @@ export default function MeditationRoom() {
       activeNodesRef.current.push(sourceNode, lpf);
 
     } else {
-      // Ambient Pad Generator (Translated directly from Python math)
       const cfg = PAD_PRESETS[soundType];
-      
-      // Override master gain for synth pad based on preset dB
       const linearGain = Math.pow(10, cfg.master_gain_db / 20.0);
       masterGainRef.current.gain.linearRampToValueAtTime(linearGain, ctx.currentTime + 3);
 
       cfg.chord_notes_hz.forEach((baseFreq: number, noteIdx: number) => {
         for (let v = 0; v < cfg.voices_per_note; v++) {
-          // Detune calculation
           const spread = -cfg.detune_cents + (v * (cfg.detune_cents * 2) / Math.max(1, cfg.voices_per_note - 1));
           const detunedFreq = baseFreq * Math.pow(2, spread / 1200.0);
           
-          // Panning (alternating sides per note)
           const panner = ctx.createStereoPanner();
           let panVal = -0.6 + (v * 1.2 / Math.max(1, cfg.voices_per_note - 1));
           panner.pan.value = noteIdx % 2 === 1 ? -panVal : panVal;
 
-          // LFO for slow amplitude swelling
           const lfo = ctx.createOscillator();
           lfo.type = "sine";
           lfo.frequency.value = 1.0 / cfg.lfo_period_sec;
@@ -170,14 +173,12 @@ export default function MeditationRoom() {
           const lfoGain = ctx.createGain();
           lfoGain.gain.value = cfg.lfo_depth / 2.0;
 
-          // Voice Gain (Base amplitude + LFO modulation)
           const voiceGain = ctx.createGain();
           voiceGain.gain.value = 1.0 - (cfg.lfo_depth / 2.0);
           
           lfo.connect(lfoGain);
           lfoGain.connect(voiceGain.gain);
 
-          // Oscillators (Fundamental + 2nd Harmonic)
           const osc1 = ctx.createOscillator();
           osc1.type = "sine";
           osc1.frequency.value = detunedFreq;
@@ -186,7 +187,7 @@ export default function MeditationRoom() {
           osc2.type = "sine";
           osc2.frequency.value = detunedFreq * 2;
           const osc2Gain = ctx.createGain();
-          osc2Gain.gain.value = 0.15; // 15% amplitude for 2nd harmonic
+          osc2Gain.gain.value = 0.15; 
 
           osc1.connect(voiceGain);
           osc2.connect(osc2Gain);
@@ -203,6 +204,13 @@ export default function MeditationRoom() {
       });
     }
   };
+
+  // Update volume smoothly in real-time
+  useEffect(() => {
+    if (finalUserGainRef.current && audioCtxRef.current) {
+      finalUserGainRef.current.gain.setTargetAtTime(volume, audioCtxRef.current.currentTime, 0.1);
+    }
+  }, [volume]);
 
   // --- TIMER ENGINE ---
   const handleStart = () => {
@@ -266,13 +274,14 @@ export default function MeditationRoom() {
       
       {!isRunning && (
         <div className="w-full mb-6">
-          <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 transition-colors">
+          <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
             <ArrowLeft className="w-4 h-4" /> Home
           </Link>
         </div>
       )}
 
       <div className="text-center mb-8">
+        <Waves className={`w-10 h-10 mx-auto mb-4 transition-colors duration-1000 ${isRunning ? "text-emerald-600 dark:text-emerald-500" : "text-slate-400 dark:text-slate-600"}`} />
         <h1 className="text-3xl font-light text-slate-900 dark:text-white mb-2">Meditation Room</h1>
         <p className="text-slate-500 dark:text-slate-400 text-xs uppercase tracking-widest font-semibold">Pure sound, no distractions</p>
       </div>
@@ -280,81 +289,107 @@ export default function MeditationRoom() {
       {!isRunning ? (
         <div className="w-full space-y-6">
           
-          {/* Noise / Synth Selectors */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-sm text-center">
-            <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">Sound Texture</p>
-            
-            <div className="flex flex-wrap justify-center gap-2 mb-4">
-              {(["brown", "white", "pink"] as const).map(type => (
-                <button
-                  key={type}
-                  onClick={() => setSoundType(type)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
-                    soundType === type ? "bg-slate-800 text-white border-slate-800 dark:bg-slate-700 dark:border-slate-700" : "bg-transparent text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <Circle className={`w-3 h-3 fill-current ${type === "brown" ? "text-amber-800 dark:text-amber-600" : type === "pink" ? "text-pink-400" : "text-slate-200"}`} />
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
-                </button>
-              ))}
+          <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 p-6 md:p-8 rounded-3xl shadow-sm dark:shadow-xl space-y-8">
+            <div className="text-center">
+              <h2 className="text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 uppercase mb-4">Continuous Noise</h2>
+              <div className="flex flex-wrap justify-center gap-3">
+                {(["brown", "white", "pink"] as const).map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setSoundType(type)}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all border ${
+                      soundType === type 
+                        ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50" 
+                        : "bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <Circle className={`w-3 h-3 fill-current ${type === "brown" ? "text-amber-700 dark:text-amber-600" : type === "pink" ? "text-pink-400" : "text-slate-300 dark:text-slate-500"}`} />
+                    {type.charAt(0).toUpperCase() + type.slice(1)} Noise
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-2">
-              {(["warm_major", "wistful_minor", "deep_sleep"] as const).map(type => (
-                <button
-                  key={type}
-                  onClick={() => setSoundType(type)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
-                    soundType === type ? "bg-blue-600 text-white border-blue-600" : "bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/40"
-                  }`}
-                >
-                  {type.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")} Pad
-                </button>
-              ))}
+            <div className="text-center pt-6 border-t border-slate-100 dark:border-slate-800/60">
+              <h2 className="text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 uppercase mb-4">Ambient Pads</h2>
+              <div className="flex flex-wrap justify-center gap-3">
+                {(["warm_major", "wistful_minor", "deep_sleep"] as const).map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setSoundType(type)}
+                    className={`px-5 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all border ${
+                      soundType === type 
+                        ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50" 
+                        : "bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    {type.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Duration Selector */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-sm text-center">
-            <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">Duration</p>
-            <div className="flex flex-wrap justify-center gap-2 mb-4">
+          <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 p-6 md:p-8 rounded-3xl shadow-sm dark:shadow-xl text-center">
+            <h2 className="text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 uppercase mb-4">Duration</h2>
+            <div className="flex flex-wrap justify-center gap-3 mb-6">
               {[5, 10, 15, 20, 30].map(mins => (
                 <button
                   key={mins}
                   onClick={() => { setTotalSeconds(mins * 60); setCustomInput(""); }}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors border ${
-                    totalSeconds === mins * 60 && !customInput ? "bg-slate-500 text-white border-slate-500" : "bg-transparent text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className={`px-5 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all border ${
+                    totalSeconds === mins * 60 && !customInput 
+                      ? "bg-emerald-600 dark:bg-emerald-900/30 text-white dark:text-emerald-400 border-emerald-600 dark:border-emerald-800/50" 
+                      : "bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
                   }`}
                 >
                   {mins}m
                 </button>
               ))}
             </div>
-            <input
-              type="number"
-              placeholder="Custom minutes (1–120)"
-              value={customInput}
-              onChange={(e) => setCustomInput(e.target.value)}
-              min="1" max="120"
-              className="w-full max-w-[200px] text-center px-4 py-2 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500 mx-auto block"
-            />
+            <div className="max-w-[200px] mx-auto">
+              <input
+                type="number"
+                placeholder="Custom (1–120m)"
+                value={customInput}
+                onChange={(e) => setCustomInput(e.target.value)}
+                min="1" max="120"
+                className="w-full text-center px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-emerald-500/50 dark:focus:ring-emerald-500/30 transition-shadow placeholder:text-slate-400 dark:placeholder:text-slate-600"
+              />
+            </div>
           </div>
 
-          <button onClick={handleStart} className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-black dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 py-4 rounded-2xl font-bold text-lg transition-all active:scale-95 shadow-md">
-            <Play className="w-5 h-5 fill-current" /> Start Session
-          </button>
+          <div className="pt-2">
+            <button onClick={handleStart} className="w-full flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white py-4 rounded-xl font-bold text-sm tracking-widest uppercase transition-all shadow-lg shadow-emerald-900/20 active:scale-[0.98]">
+              <Play className="w-4 h-4 fill-current" /> Start Session
+            </button>
+          </div>
         </div>
 
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center w-full min-h-[50vh]">
-          <h1 className="text-[6rem] sm:text-[8rem] font-light text-slate-900 dark:text-white tracking-widest tabular-nums leading-none mb-4">
+          <h1 className="text-[6rem] sm:text-[8rem] font-light text-emerald-600 dark:text-emerald-400 tracking-widest tabular-nums leading-none mb-6">
             {formatTime(timeLeft)}
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 italic mb-12">Session in progress...</p>
+          <p className="text-slate-500 dark:text-slate-400 italic mb-12 tracking-wide">Session in progress...</p>
           
-          <button onClick={() => handleStop(false)} className="flex items-center gap-2 px-8 py-4 rounded-full font-bold text-red-600 border-2 border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-            <Square className="w-5 h-5 fill-current" /> Stop
+          <button onClick={() => handleStop(false)} className="flex items-center gap-2 px-8 py-4 rounded-full font-bold text-sm tracking-widest uppercase text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+            <Square className="w-4 h-4 fill-current" /> Stop
           </button>
+
+          {/* Minimalist volume slider that fades into the background unless hovered */}
+          <div className="mt-12 flex items-center gap-4 w-full max-w-xs mx-auto opacity-30 hover:opacity-100 transition-opacity duration-300">
+            <Volume2 className="w-5 h-5 text-slate-500 shrink-0" />
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={volume}
+              onChange={(e) => setVolume(parseFloat(e.target.value))}
+              className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-600 dark:accent-emerald-500"
+            />
+          </div>
         </div>
       )}
     </div>

@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { useLanguage } from "@/lib/LanguageContext"; // <--- Import hook
+import { ArrowLeft, Volume2 } from "lucide-react";
+import { useLanguage } from "@/lib/LanguageContext";
 
 type Phase = "Ready" | "Inhale" | "Exhale";
 
@@ -13,17 +13,21 @@ const PHASES = [
 ];
 
 export default function PanicRoom() {
-  const { currentLangCode } = useLanguage(); // <--- Pull active language code
+  const { currentLangCode } = useLanguage();
 
   const [isRunning, setIsRunning] = useState(false);
   const [phase, setPhase] = useState<Phase>("Ready");
   const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [volume, setVolume] = useState(0.8);
 
   const endTimeRef = useRef<number>(0);
   const phaseIndexRef = useRef<number>(0);
   const wakeLockRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Track live volume to bypass stale closures inside setInterval
+  const volumeRef = useRef(0.8);
 
   // --- 1. Wake Lock Logic ---
   const requestWakeLock = async () => {
@@ -45,6 +49,14 @@ export default function PanicRoom() {
     }
   };
 
+  // Sync volume state to ref and update any actively playing audio
+  useEffect(() => {
+    volumeRef.current = volume;
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume]);
+
   // --- 2. Dynamic Audio Logic ---
   const playCue = (key: Phase) => {
     if (audioRef.current) {
@@ -53,12 +65,15 @@ export default function PanicRoom() {
     }
     
     const fileName = key.toLowerCase();
-    // Uses the selected language folder dynamically!
     audioRef.current = new Audio(`/audio/tts/${currentLangCode}/${fileName}.mp3`);
+    
+    // Read from the ref so the newly generated cue always has the latest volume
+    audioRef.current.volume = volumeRef.current;
+    
     audioRef.current.play().catch((e) => console.warn("Audio playback failed:", e));
   };
 
-  // --- 3. Core Engine (Drift-Proof) ---
+  // --- 3. Core Engine ---
   const startPhase = (index: number) => {
     const currentPhase = PHASES[index];
     endTimeRef.current = Date.now() + currentPhase.duration * 1000;
@@ -144,13 +159,13 @@ export default function PanicRoom() {
         </p>
       </header>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-3xl w-full max-w-sm p-8 flex flex-col items-center justify-between min-h-[400px]">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-3xl w-full max-w-sm p-8 flex flex-col items-center justify-between">
         
-        <div className="flex-1 flex items-center justify-center w-full my-8 relative">
-          <div className="absolute w-24 h-24 rounded-full border-4 border-slate-100 dark:border-slate-800" />
+        <div className="relative flex items-center justify-center w-full h-[240px] my-4">
+          <div className="absolute w-24 h-24 rounded-full border-4 border-slate-100 dark:border-slate-800 z-10" />
           
           <div
-            className="rounded-full bg-blue-600 dark:bg-blue-500 transition-all ease-linear"
+            className="absolute rounded-full bg-blue-600 dark:bg-blue-500 transition-all ease-linear z-0"
             style={{
               width: phase === "Inhale" ? "220px" : phase === "Exhale" ? "80px" : "100px",
               height: phase === "Inhale" ? "220px" : phase === "Exhale" ? "80px" : "100px",
@@ -170,7 +185,7 @@ export default function PanicRoom() {
         </div>
       </div>
 
-      <div className="w-full max-w-sm mt-8">
+      <div className="w-full max-w-sm mt-8 space-y-8">
         {!isRunning ? (
           <button
             onClick={startSession}
@@ -186,7 +201,21 @@ export default function PanicRoom() {
             Stop
           </button>
         )}
+
+        <div className="flex items-center gap-4 w-full max-w-[200px] mx-auto opacity-50 hover:opacity-100 transition-opacity duration-300">
+          <Volume2 className="w-5 h-5 text-slate-500 shrink-0" />
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={volume}
+            onChange={(e) => setVolume(parseFloat(e.target.value))}
+            className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:accent-blue-500"
+          />
+        </div>
       </div>
+      
     </div>
   );
 }

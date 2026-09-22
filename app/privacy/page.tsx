@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Breathing Bot",
+  title: "Privacy Policy | MuTimer",
 };
 
 export default function PrivacyPolicyPage() {
@@ -19,7 +19,7 @@ export default function PrivacyPolicyPage() {
       </div>
 
       <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 text-amber-800 dark:text-amber-300 p-4 rounded-xl text-sm mb-8">
-        <strong>Note:</strong> Breathing Bot is currently in an experimental beta phase. Features may be updated, and your feedback is highly appreciated as we improve the experience.
+        <strong>Note:</strong> MuTimer is currently in an experimental beta phase. Features may be updated, and your feedback is highly appreciated as we improve the experience.
       </div>
 
       <div className="flex flex-col gap-6">
@@ -27,7 +27,7 @@ export default function PrivacyPolicyPage() {
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm p-6 rounded-2xl">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">No Accounts, No Personal Data</h2>
           <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-            Breathing Bot does not have user accounts, logins, or profiles of any kind. There is nothing to sign up for, and we do not collect your name, email address, or any personally identifying information.
+            MuTimer does not have user accounts, logins, or profiles of any kind. There is nothing to sign up for, and we do not collect your name, email address, or any personally identifying information.
           </p>
         </div>
 
@@ -51,12 +51,12 @@ export default function PrivacyPolicyPage() {
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm p-6 rounded-2xl">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">Advertising & Third-Party Cookies</h2>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
-            Breathing Bot displays minimalist advertisements to support free access to the application.
+            MuTimer displays minimalist advertisements to support free access to the application.
           </p>
           <ul className="list-disc list-inside text-sm text-slate-600 dark:text-slate-400 space-y-2 ml-1">
             <li>We partner with Google AdSense (or similar networks) to serve advertisements.</li>
             <li>Ad partners may use cookies and similar technologies to collect device identifiers, IP addresses, and browsing behavior in order to serve relevant ads.</li>
-            <li><strong>Control:</strong> You can opt out of personalized advertising at any time via your Google Account Settings or your device's ad tracking preferences.</li>
+            <li><strong>Control:</strong> You can opt out of personalized advertising at any time via your Google Account Settings or your device&apos;s ad tracking preferences.</li>
           </ul>
         </div>
 

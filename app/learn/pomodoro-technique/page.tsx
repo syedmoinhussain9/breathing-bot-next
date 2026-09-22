@@ -31,11 +31,11 @@ export default function PomodoroTechnique() {
               Human attention is not designed for continuous, unbroken output. When we try to force focus for hours at a time, our cognitive reserves deplete, leading to distractions, prolonged decision-making, and burnout. 
             </p>
             <p className="mb-4">
-              The Pomodoro technique relies on working with the brain's natural rhythms. By breaking work into dedicated "sprints" followed by guaranteed "breaks," you remove the anxiety of an endless task. Knowing a break is coming allows you to fully commit your cognitive load to the task at hand.
+              The Pomodoro technique relies on working with the brain&apos;s natural rhythms. By breaking work into dedicated &quot;sprints&quot; followed by guaranteed &quot;breaks,&quot; you remove the anxiety of an endless task. Knowing a break is coming allows you to fully commit your cognitive load to the task at hand.
             </p>
             <ul className="list-disc pl-6 space-y-2 mt-4 marker:text-blue-500">
               <li><strong>Standard (25/5):</strong> 25 minutes of work, 5 minutes of rest. Ideal for tasks requiring high mental agility or frequent context switching.</li>
-              <li><strong>Deep Work (50/10):</strong> 50 minutes of work, 10 minutes of rest. Best suited for programming, writing, and tasks where entering a "flow state" requires a longer warm-up period.</li>
+              <li><strong>Deep Work (50/10):</strong> 50 minutes of work, 10 minutes of rest. Best suited for programming, writing, and tasks where entering a &quot;flow state&quot; requires a longer warm-up period.</li>
             </ul>
           </section>
 
@@ -44,7 +44,7 @@ export default function PomodoroTechnique() {
               <Headphones className="w-6 h-6 text-amber-500" /> The Role of Continuous Noise
             </h2>
             <p className="mb-4">
-              A timer keeps your structure, but your environment can still break your focus. Sudden noises—doors closing, traffic outside, or conversations—disrupt your train of thought by hijacking the brain's threat-detection systems.
+              A timer keeps your structure, but your environment can still break your focus. Sudden noises—doors closing, traffic outside, or conversations—disrupt your train of thought by hijacking the brain&apos;s threat-detection systems.
             </p>
             <p className="mb-4">
               Pairing your focus sprints with <strong>Brown</strong> or <strong>Pink</strong> noise creates an acoustic blanket. Unlike White noise, which can be harsh and hissy, Brown noise concentrates its energy in the lower frequencies. This effectively masks unpredictable environmental sounds without intruding on the specific frequency ranges where your internal monologue (vital for logic and writing) sits.

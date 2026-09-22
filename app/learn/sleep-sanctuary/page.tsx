@@ -28,10 +28,10 @@ export default function SleepSanctuaryGuide() {
               <Waves className="w-6 h-6 text-amber-600" /> The Acoustic Blanket
             </h2>
             <p className="mb-4">
-              When you try to sleep, the brain doesn't completely shut off its audio processing. Sudden spikes in sound—like a car alarm, construction noise, or unpredictable rolling thunderstorms—can jolt your nervous system out of light sleep before you reach the restorative deep sleep phases.
+              When you try to sleep, the brain doesn&apos;t completely shut off its audio processing. Sudden spikes in sound—like a car alarm, construction noise, or unpredictable rolling thunderstorms—can jolt your nervous system out of light sleep before you reach the restorative deep sleep phases.
             </p>
             <p className="mb-4">
-              The Sleep Sanctuary utilizes procedural <strong>Brown Noise</strong> to create an acoustic blanket. Because brown noise heavily weights the lower frequencies (sounding like a distant waterfall or heavy rain), it smooths out the ambient noise floor of your bedroom. When a thunderstorm rolls in, the brown noise minimizes the delta between the room's silence and the sudden thunderclap, preventing your brain from registering it as a threat.
+              The Sleep Sanctuary utilizes procedural <strong>Brown Noise</strong> to create an acoustic blanket. Because brown noise heavily weights the lower frequencies (sounding like a distant waterfall or heavy rain), it smooths out the ambient noise floor of your bedroom. When a thunderstorm rolls in, the brown noise minimizes the delta between the room&apos;s silence and the sudden thunderclap, preventing your brain from registering it as a threat.
             </p>
           </section>
 

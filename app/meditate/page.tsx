@@ -163,7 +163,7 @@ export default function MeditationRoom() {
           const detunedFreq = baseFreq * Math.pow(2, spread / 1200.0);
           
           const panner = ctx.createStereoPanner();
-          let panVal = -0.6 + (v * 1.2 / Math.max(1, cfg.voices_per_note - 1));
+          const panVal = -0.6 + (v * 1.2 / Math.max(1, cfg.voices_per_note - 1));
           panner.pan.value = noteIdx % 2 === 1 ? -panVal : panVal;
 
           const lfo = ctx.createOscillator();

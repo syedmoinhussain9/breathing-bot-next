@@ -3,15 +3,20 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { ChevronDown, Volume2, Moon, Sun } from "lucide-react";
+import { ChevronDown, Volume2, Moon, Sun, Menu, X } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 
 export default function Navbar() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  
+  // Desktop Dropdown States
   const [toolsOpen, setToolsOpen] = useState(false);
   const [learnOpen, setLearnOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+
+  // Mobile Menu State
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { currentLangName, setLanguage } = useLanguage();
 
@@ -81,18 +86,22 @@ export default function Navbar() {
     { name: "Vietnamese", code: "vi" },
   ];
 
+  // Helper to close the mobile menu whenever a route is clicked
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
   return (
     <nav className="sticky top-0 z-50 w-full bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors duration-300">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
           <div className="flex-shrink-0">
-            <Link href="/" className="flex items-center gap-2 text-xl font-bold text-slate-900 dark:text-white">
+            <Link href="/" onClick={closeMobileMenu} className="flex items-center gap-2 text-xl font-bold text-slate-900 dark:text-white">
               <span className="text-2xl">🍃</span>
-              Breathing Bot
+              MuTimer
             </Link>
           </div>
 
+          {/* --- DESKTOP NAVIGATION --- */}
           <div className="hidden md:flex items-center gap-6">
             
             {/* Tools Dropdown */}
@@ -194,8 +203,93 @@ export default function Navbar() {
             </div>
 
           </div>
+
+          {/* --- MOBILE NAVIGATION TOGGLES --- */}
+          <div className="flex md:hidden items-center gap-2">
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors focus:outline-none"
+              aria-label="Toggle Dark Mode"
+            >
+              {mounted && theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none"
+              aria-label="Toggle Mobile Menu"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
+
         </div>
       </div>
+
+      {/* --- MOBILE DRAWER --- */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-y-auto max-h-[85vh] animate-in slide-in-from-top-2 duration-200">
+          <div className="px-4 py-4 space-y-6">
+            
+            {/* Tools Section */}
+            <div>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-3">Tools</span>
+              <div className="flex flex-col space-y-2">
+                {toolsLinks.map((link) => (
+                  <Link
+                    key={link.path}
+                    href={link.path}
+                    onClick={closeMobileMenu}
+                    className="text-slate-700 dark:text-slate-300 font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  >
+                    {link.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Learn Section */}
+            <div>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-3 border-t border-slate-100 dark:border-slate-800 pt-4">Learn & Guides</span>
+              <div className="grid grid-cols-2 gap-y-3 gap-x-4">
+                {learnLinks.map((link) => (
+                  <Link
+                    key={link.path}
+                    href={link.path}
+                    onClick={closeMobileMenu}
+                    className="text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors truncate"
+                  >
+                    {link.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Language Section */}
+            <div>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-3 border-t border-slate-100 dark:border-slate-800 pt-4">Voice Audio Language</span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {languages.map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => {
+                      setLanguage(lang.code, lang.name);
+                      closeMobileMenu();
+                    }}
+                    className={`py-2 px-3 rounded-lg text-xs font-semibold text-center border transition-colors ${
+                      currentLangName === lang.name
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
+                    }`}
+                  >
+                    {lang.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

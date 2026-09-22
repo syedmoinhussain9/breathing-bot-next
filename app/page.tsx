@@ -7,10 +7,10 @@ export default function Home() {
       {/* Header Section */}
       <div className="text-center mb-12 space-y-3">
         <h1 className="text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
-          Welcome to Breathing Bot
+          Welcome to MuTimer
         </h1>
         <p className="text-slate-600 dark:text-slate-400 text-lg max-w-md mx-auto">
-          Free breathing exercises, panic relief, focus timers, and sleep soundscapes — all in one place.
+          Free breathing exercises, panic relief, focus timers, and sleep soundscapes, all in one place.
         </p>
       </div>
 

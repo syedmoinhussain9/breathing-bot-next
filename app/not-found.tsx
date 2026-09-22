@@ -18,18 +18,18 @@ export default function NotFound() {
       </h2>
       
       <p className="text-slate-500 dark:text-slate-400 max-w-md mb-8">
-        The page you're looking for doesn't exist. It may have been moved or the URL might be wrong.
+        The page you&apos;re looking for doesn&apos;t exist. It may have been moved or the URL might be wrong.
       </p>
 
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
         <Link 
-          href="/" 
+          href="/"
           className="w-full sm:w-auto px-8 py-3 bg-slate-900 hover:bg-black dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 font-bold rounded-full transition-colors"
         >
           Go home
         </Link>
         <Link 
-          href="/guided" 
+          href="/guided"
           className="w-full sm:w-auto px-8 py-3 bg-transparent border-2 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold rounded-full transition-colors"
         >
           Start breathing

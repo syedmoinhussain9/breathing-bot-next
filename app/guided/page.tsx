@@ -273,7 +273,7 @@ function GuidedBreathingContent() {
 
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-3xl w-full max-w-sm p-8 flex flex-col items-center justify-between">
             
-            {/* Fixed height container to prevent layout shifting */}
+            {/* height container to prevent layout shifting */}
             <div className="relative flex items-center justify-center w-full h-[240px] my-4">
               <div className="absolute w-24 h-24 rounded-full border-4 border-slate-100 dark:border-slate-800 z-10" />
               

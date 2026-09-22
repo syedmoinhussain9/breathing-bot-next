@@ -19,12 +19,17 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [currentLangName, setCurrentLangName] = useState("English");
 
   useEffect(() => {
-    const savedCode = localStorage.getItem("breathing_bot_lang_code");
-    const savedName = localStorage.getItem("breathing_bot_lang_name");
-    if (savedCode && savedName) {
-      setCurrentLangCode(savedCode);
-      setCurrentLangName(savedName);
-    }
+    // Push local storage reading to the next tick to avoid synchronous cascading renders
+    const initTimer = setTimeout(() => {
+      const savedCode = localStorage.getItem("breathing_bot_lang_code");
+      const savedName = localStorage.getItem("breathing_bot_lang_name");
+      if (savedCode && savedName) {
+        setCurrentLangCode(savedCode);
+        setCurrentLangName(savedName);
+      }
+    }, 0);
+
+    return () => clearTimeout(initTimer);
   }, []);
 
   const setLanguage = (code: string, name: string) => {

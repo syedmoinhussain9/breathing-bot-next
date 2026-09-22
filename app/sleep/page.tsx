@@ -108,7 +108,8 @@ export default function SleepSanctuary() {
 
   const startSession = () => {
     if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      audioCtxRef.current = new AudioContextClass();
     }
     const ctx = audioCtxRef.current;
     if (ctx.state === "suspended") ctx.resume();

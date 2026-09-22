@@ -1,13 +1,28 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, Play, Square, Circle, Waves, Volume2 } from "lucide-react";
 
 type SoundType = "brown" | "white" | "pink" | "warm_major" | "wistful_minor" | "deep_sleep";
 
+// 1. Strict Typing for the Synthesizer Presets
+interface PadPreset {
+  chord_notes_hz: number[];
+  detune_cents: number;
+  voices_per_note: number;
+  lfo_period_sec: number;
+  lfo_depth: number;
+  master_gain_db: number;
+}
+
+// 2. Strict Typing for the experimental WakeLock API
+interface WakeLockSentinel {
+  release: () => Promise<void>;
+}
+
 // Translated from GenerateAmbientPad.py
-const PAD_PRESETS: Record<string, any> = {
+const PAD_PRESETS: Record<string, PadPreset> = {
   warm_major: { chord_notes_hz: [130.81, 196.00, 329.63, 587.33], detune_cents: 6, voices_per_note: 3, lfo_period_sec: 8.0, lfo_depth: 0.35, master_gain_db: -28.0 },
   wistful_minor: { chord_notes_hz: [130.81, 155.56, 329.63, 466.16], detune_cents: 8, voices_per_note: 3, lfo_period_sec: 9.0, lfo_depth: 0.40, master_gain_db: -28.0 },
   deep_sleep: { chord_notes_hz: [98.00, 146.83, 220.00, 293.66], detune_cents: 5, voices_per_note: 4, lfo_period_sec: 14.0, lfo_depth: 0.45, master_gain_db: -30.0 },
@@ -23,37 +38,42 @@ export default function MeditationRoom() {
   // Real-time volume state
   const [volume, setVolume] = useState(0.8);
 
-  // Audio & Engine Refs
+  // Audio & Engine Refs with strict AudioNode typing
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const activeNodesRef = useRef<any[]>([]);
+  const activeNodesRef = useRef<(AudioNode | { stop: (when?: number) => void })[]>([]);
   const masterGainRef = useRef<GainNode | null>(null);
   const finalUserGainRef = useRef<GainNode | null>(null);
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const endTimeRef = useRef<number>(0);
-  const wakeLockRef = useRef<any>(null);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   // --- WAKE LOCK ---
   const requestWakeLock = async () => {
     try {
-      if ("wakeLock" in navigator) wakeLockRef.current = await (navigator as any).wakeLock.request("screen");
-    } catch (err) {}
+      if ("wakeLock" in navigator) {
+        // Strict typing override for a browser API that is not yet in standard TS definitions
+        const nav = navigator as unknown as { wakeLock: { request: (type: "screen") => Promise<WakeLockSentinel> } };
+        wakeLockRef.current = await nav.wakeLock.request("screen");
+      }
+    } catch {} // Removed unused 'e'
   };
+
   const releaseWakeLock = async () => {
     if (wakeLockRef.current) {
-      try { await wakeLockRef.current.release(); } catch (e) {}
+      try { await wakeLockRef.current.release(); } catch {} // Removed unused 'e'
       wakeLockRef.current = null;
     }
   };
 
   // --- AUDIO SYNTHESIS ENGINE ---
-  const stopAudio = () => {
+  const stopAudio = useCallback(() => {
     if (masterGainRef.current && audioCtxRef.current) {
       masterGainRef.current.gain.linearRampToValueAtTime(0, audioCtxRef.current.currentTime + 2);
       setTimeout(() => {
         activeNodesRef.current.forEach(node => {
-          try { node.stop(); } catch(e) {}
-          try { node.disconnect(); } catch(e) {}
+          try { if ('stop' in node) node.stop(); } catch {} // Removed unused 'e'
+          try { if ('disconnect' in node) (node as AudioNode).disconnect(); } catch {} // Removed unused 'e'
         });
         activeNodesRef.current = [];
         masterGainRef.current?.disconnect();
@@ -62,9 +82,9 @@ export default function MeditationRoom() {
         finalUserGainRef.current = null;
       }, 2100);
     }
-  };
+  }, []);
 
-  const playEndingTing = () => {
+  const playEndingTing = useCallback(() => {
     if (!audioCtxRef.current) return;
     const ctx = audioCtxRef.current;
     if (ctx.state === "suspended") ctx.resume();
@@ -81,10 +101,13 @@ export default function MeditationRoom() {
     g.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + 1.5);
-  };
+  }, []);
 
-  const startAudio = () => {
-    if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+  const startAudio = useCallback(() => {
+    if (!audioCtxRef.current) {
+      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      audioCtxRef.current = new AudioContextClass();
+    }
     const ctx = audioCtxRef.current;
     if (ctx.state === "suspended") ctx.resume();
 
@@ -95,12 +118,10 @@ export default function MeditationRoom() {
       ? 0.3 
       : Math.pow(10, PAD_PRESETS[soundType].master_gain_db / 20.0);
 
-    // User volume controller (maps to the slider)
     finalUserGainRef.current = ctx.createGain();
     finalUserGainRef.current.gain.value = volume;
     finalUserGainRef.current.connect(ctx.destination);
 
-    // Master mathematical gain (handles the 3s fade in/out)
     masterGainRef.current = ctx.createGain();
     masterGainRef.current.gain.setValueAtTime(0, ctx.currentTime);
     masterGainRef.current.gain.linearRampToValueAtTime(targetGain, ctx.currentTime + 3);
@@ -203,7 +224,7 @@ export default function MeditationRoom() {
         }
       });
     }
-  };
+  }, [soundType, stopAudio, volume]);
 
   // Update volume smoothly in real-time
   useEffect(() => {
@@ -213,7 +234,21 @@ export default function MeditationRoom() {
   }, [volume]);
 
   // --- TIMER ENGINE ---
-  const handleStart = () => {
+  const handleStop = useCallback((completed = false) => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    releaseWakeLock();
+    stopAudio();
+    setIsRunning(false);
+    
+    if (completed) {
+      setTimeLeft(0);
+      playEndingTing();
+    } else {
+      setTimeLeft(totalSeconds);
+    }
+  }, [totalSeconds, playEndingTing, stopAudio]);
+
+  const handleStart = useCallback(() => {
     let finalSeconds = totalSeconds;
     if (customInput) {
       const val = parseInt(customInput, 10);
@@ -225,7 +260,9 @@ export default function MeditationRoom() {
     
     setIsRunning(true);
     setTimeLeft(finalSeconds);
-    endTimeRef.current = Date.now() + finalSeconds * 1000;
+    
+    const now = Date.now();
+    endTimeRef.current = now + finalSeconds * 1000;
     
     startAudio();
     requestWakeLock();
@@ -239,21 +276,7 @@ export default function MeditationRoom() {
         setTimeLeft(Math.ceil(msLeft / 1000));
       }
     }, 250);
-  };
-
-  const handleStop = (completed = false) => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    releaseWakeLock();
-    stopAudio();
-    setIsRunning(false);
-    
-    if (completed) {
-      setTimeLeft(0);
-      playEndingTing();
-    } else {
-      setTimeLeft(totalSeconds);
-    }
-  };
+  }, [totalSeconds, customInput, handleStop, startAudio]);
 
   useEffect(() => {
     return () => {
@@ -261,7 +284,7 @@ export default function MeditationRoom() {
       stopAudio();
       releaseWakeLock();
     };
-  }, []);
+  }, [stopAudio]);
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60).toString().padStart(2, "0");

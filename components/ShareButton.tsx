@@ -17,7 +17,7 @@ export default function ShareButton() {
     if (navigator.share) {
       try {
         await navigator.share(shareData);
-      } catch (err) {
+      } catch {
         // User closed the share sheet without sharing, fail silently
       }
     } else {

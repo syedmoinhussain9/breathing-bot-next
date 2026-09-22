@@ -25,14 +25,20 @@ export default function Navbar() {
   const langRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMounted(true);
+    // FIX: Push the state update to the next tick to prevent synchronous cascading renders
+    const mountTimer = setTimeout(() => setMounted(true), 0);
+
     function handleClickOutside(event: MouseEvent) {
       if (toolsRef.current && !toolsRef.current.contains(event.target as Node)) setToolsOpen(false);
       if (learnRef.current && !learnRef.current.contains(event.target as Node)) setLearnOpen(false);
       if (langRef.current && !langRef.current.contains(event.target as Node)) setLangOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    
+    return () => {
+      clearTimeout(mountTimer);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   const toolsLinks = [

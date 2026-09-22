@@ -12,6 +12,11 @@ const PHASES = [
   { key: "Exhale" as Phase, duration: 4 },
 ];
 
+// 1. Strict Typing for the experimental WakeLock API
+interface WakeLockSentinel {
+  release: () => Promise<void>;
+}
+
 export default function PanicRoom() {
   const { currentLangCode } = useLanguage();
 
@@ -22,7 +27,10 @@ export default function PanicRoom() {
 
   const endTimeRef = useRef<number>(0);
   const phaseIndexRef = useRef<number>(0);
-  const wakeLockRef = useRef<any>(null);
+  
+  // 2. Replace 'any' with our strictly defined WakeLockSentinel type
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -33,10 +41,13 @@ export default function PanicRoom() {
   const requestWakeLock = async () => {
     try {
       if ("wakeLock" in navigator) {
-        wakeLockRef.current = await (navigator as any).wakeLock.request("screen");
+        // 3. Explicitly type the navigator to safely access the experimental wakeLock property
+        const nav = navigator as unknown as { wakeLock: { request: (type: "screen") => Promise<WakeLockSentinel> } };
+        wakeLockRef.current = await nav.wakeLock.request("screen");
       }
-    } catch (err) {
-      console.warn("Wake Lock request failed:", err);
+    } catch {
+      // Cleaned up the undefined 'err' variable here
+      console.warn("Wake Lock request failed");
     }
   };
 
@@ -44,7 +55,7 @@ export default function PanicRoom() {
     if (wakeLockRef.current) {
       try {
         await wakeLockRef.current.release();
-      } catch (e) {}
+      } catch {}
       wakeLockRef.current = null;
     }
   };
@@ -70,7 +81,7 @@ export default function PanicRoom() {
     // Read from the ref so the newly generated cue always has the latest volume
     audioRef.current.volume = volumeRef.current;
     
-    audioRef.current.play().catch((e) => console.warn("Audio playback failed:", e));
+    audioRef.current.play().catch((e: unknown) => console.warn("Audio playback failed:", e));
   };
 
   // --- 3. Core Engine ---

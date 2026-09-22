@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, Play, Pause, RotateCcw, Timer, Settings2, Coffee, Brain, Repeat, Headphones, Volume2 } from "lucide-react";
 
@@ -40,9 +40,18 @@ export default function PomodoroTimer() {
   const noiseGainRef = useRef<GainNode | null>(null);
   const noiseSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
+  // --- Timer Logic (Moved up for useCallback dependency) ---
+  const getDuration = useCallback((type: SessionType) => {
+    if (activePreset === "custom") {
+      return type === "focus" ? customFocus : customBreak;
+    }
+    return type === "focus" ? PRESETS[activePreset].focus : PRESETS[activePreset].break;
+  }, [activePreset, customFocus, customBreak]);
+
   // --- Audio Generation Utilities ---
-  const playEndingTing = () => {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  const playEndingTing = useCallback(() => {
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new AudioContextClass();
     if (ctx.state === 'suspended') ctx.resume();
     
     const osc = ctx.createOscillator();
@@ -59,9 +68,9 @@ export default function PomodoroTimer() {
     
     osc.start();
     osc.stop(ctx.currentTime + 1.5);
-  };
+  }, []);
 
-  const createNoiseBuffer = (ctx: AudioContext, type: NoiseType) => {
+  const createNoiseBuffer = useCallback((ctx: AudioContext, type: NoiseType) => {
     const bufferSize = ctx.sampleRate * 2;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const output = buffer.getChannelData(0);
@@ -82,14 +91,15 @@ export default function PomodoroTimer() {
       }
     }
     return buffer;
-  };
+  }, []);
 
   // --- Background Noise Lifecycle ---
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      audioCtxRef.current = new AudioContextClass();
     }
     const ctx = audioCtxRef.current;
 
@@ -127,7 +137,7 @@ export default function PomodoroTimer() {
         noiseSourceRef.current = null;
       }
     };
-  }, [isActive, sessionType, noiseEnabled, noiseType]);
+  }, [isActive, sessionType, noiseEnabled, noiseType, noiseVolume, createNoiseBuffer]);
 
   // Handle Real-Time Volume Adjustments
   useEffect(() => {
@@ -137,14 +147,6 @@ export default function PomodoroTimer() {
     }
   }, [noiseVolume]);
 
-
-  // --- Timer Logic ---
-  const getDuration = (type: SessionType) => {
-    if (activePreset === "custom") {
-      return type === "focus" ? customFocus : customBreak;
-    }
-    return type === "focus" ? PRESETS[activePreset].focus : PRESETS[activePreset].break;
-  };
 
   const resetTimer = () => {
     setIsActive(false);
@@ -162,18 +164,26 @@ export default function PomodoroTimer() {
       
       if (sessionType === "focus") {
         const newCycleCount = cycles + 1;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setCycles(newCycleCount);
         
         if (targetCycles !== "endless" && newCycleCount >= targetCycles) {
+           
           setIsActive(false);
+           
           setSessionType("focus");
+           
           setTimeLeft(getDuration("focus") * 60);
         } else {
+           
           setSessionType("break");
+           
           setTimeLeft(getDuration("break") * 60);
         }
       } else {
+         
         setSessionType("focus");
+         
         setTimeLeft(getDuration("focus") * 60);
       }
     }
@@ -181,13 +191,14 @@ export default function PomodoroTimer() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isActive, timeLeft, sessionType, cycles, targetCycles]);
+  }, [isActive, timeLeft, sessionType, cycles, targetCycles, getDuration, playEndingTing]);
 
   useEffect(() => {
     if (!isActive) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTimeLeft(getDuration(sessionType) * 60);
     }
-  }, [activePreset, customFocus, customBreak]);
+  }, [isActive, sessionType, getDuration]);
 
 
   // --- Formatting ---
@@ -349,7 +360,7 @@ export default function PomodoroTimer() {
                   <button
                     key={val}
                     disabled={isActive}
-                    onClick={() => setTargetCycles(val as any)}
+                    onClick={() => setTargetCycles(val as number | "endless")}
                     className={`w-12 h-10 rounded-lg text-xs font-semibold transition-all ${
                       targetCycles === val
                         ? "bg-slate-700 text-slate-200"

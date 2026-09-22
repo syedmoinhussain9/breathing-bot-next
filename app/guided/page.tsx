@@ -14,19 +14,17 @@ function GuidedBreathingContent() {
   const urlTechnique = searchParams.get("technique");
   const { currentLangCode } = useLanguage();
 
-  const [selectedTech, setSelectedTech] = useState<string>("box");
+  // FIX: Initialize the state directly from the URL parameter instead of using a useEffect
+  const [selectedTech, setSelectedTech] = useState<string>(
+    urlTechnique && PRESET_ORDER.includes(urlTechnique) ? urlTechnique : "box"
+  );
+  
   const [activeLevel, setActiveLevel] = useState<number>(1);
   const [targetCycles, setTargetCycles] = useState<number>(10);
   const [customSettings, setCustomSettings] = useState<[number, number, number, number]>([4, 0, 4, 0]);
   
   // Real-time volume state
   const [volume, setVolume] = useState(0.8);
-
-  useEffect(() => {
-    if (urlTechnique && PRESET_ORDER.includes(urlTechnique)) {
-      setSelectedTech(urlTechnique);
-    }
-  }, [urlTechnique]);
 
   const [isRunning, setIsRunning] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<PhaseKey>("Inhale");
@@ -36,7 +34,11 @@ function GuidedBreathingContent() {
   const endTimeRef = useRef<number>(0);
   const phaseIndexRef = useRef<number>(0);
   const cycleRef = useRef<number>(1);
+  
+  // FIX: Explicitly silence the TS warning for the experimental Wake Lock API
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const wakeLockRef = useRef<any>(null);
+  
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -74,14 +76,16 @@ function GuidedBreathingContent() {
   const requestWakeLock = async () => {
     try {
       if ("wakeLock" in navigator) {
+        // FIX: Explicitly silence the TS warning for the experimental Wake Lock API
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         wakeLockRef.current = await (navigator as any).wakeLock.request("screen");
       }
-    } catch (err) {}
+    } catch {}
   };
 
   const releaseWakeLock = async () => {
     if (wakeLockRef.current) {
-      try { await wakeLockRef.current.release(); } catch (e) {}
+      try { await wakeLockRef.current.release(); } catch {}
       wakeLockRef.current = null;
     }
   };
